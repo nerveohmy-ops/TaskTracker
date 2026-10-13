@@ -4,7 +4,8 @@ Full-stack приложение для управления личными за�
 
 ## Демо
 
-> ![Uploading Снимок экрана 2026-10-13 161636.png…]()
+> <img width="1903" height="938" alt="Снимок экрана 2026-10-13 161636" src="https://github.com/user-attachments/assets/8f96cb2b-a8aa-4837-b321-06e4beb2401f" />
+
 
 
 ## Возможности
