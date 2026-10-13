@@ -1,7 +1,7 @@
-const API_URL = 'https://localhost:7200/api/tasks';
+requireAuth();
 
 async function loadTasks() {
-    const response = await fetch(API_URL);
+    const response = await apiFetch('/tasks');
     const tasks = await response.json();
 
     const list = document.getElementById('task-list');
@@ -17,30 +17,79 @@ async function loadTasks() {
             titleSpan.classList.add('completed');
         }
 
+        li.appendChild(titleSpan);
+
+        if (task.dueDate) {
+            const dateSpan = document.createElement('span');
+            dateSpan.className = 'task-deadline';
+            dateSpan.textContent = formatDeadline(task.dueDate, task.isCompleted);
+
+            const deadlineClass = getDeadlineClass(task.dueDate, task.isCompleted);
+            if (deadlineClass) {
+                dateSpan.classList.add(deadlineClass);
+            }
+
+            li.appendChild(dateSpan);
+        }
+
         const completeButton = document.createElement('button');
-        completeButton.textContent = task.isCompleted ? '↺ Вернуть' : '✓ Выполнено';
+        completeButton.textContent = task.isCompleted ? 'Вернуть' : 'Выполнено';
         completeButton.addEventListener('click', () => toggleComplete(task));
 
         const deleteButton = document.createElement('button');
-        deleteButton.textContent = '✕ Удалить';
+        deleteButton.textContent = 'Удалить';
         deleteButton.addEventListener('click', () => deleteTask(task.id));
 
-        li.appendChild(titleSpan);
         li.appendChild(completeButton);
         li.appendChild(deleteButton);
         list.appendChild(li);
     });
 }
 
+function formatDeadline(dueDate, isCompleted) {
+    const due = new Date(dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const dueDay = new Date(due);
+    dueDay.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.round((dueDay - today) / (1000 * 60 * 60 * 24));
+
+    if (isCompleted) return `${due.getDate()}.${String(due.getMonth() + 1).padStart(2, '0')}`;
+    if (diffDays === 0) return 'сегодня';
+    if (diffDays === 1) return 'завтра';
+    if (diffDays === -1) return 'вчера';
+    if (diffDays < 0) return `${Math.abs(diffDays)} дн. назад`;
+
+    return `${due.getDate()}.${String(due.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function getDeadlineClass(dueDate, isCompleted) {
+    if (isCompleted) return 'deadline-done';
+
+    const due = new Date(dueDate);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    due.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.round((due - today) / (1000 * 60 * 60 * 24));
+
+    if (diffDays < 0) return 'deadline-overdue';
+    if (diffDays === 0) return 'deadline-today';
+    if (diffDays <= 2) return 'deadline-soon';
+    return '';
+}
+
 async function createTask(title) {
-    const response = await fetch(API_URL, {
+    const dueDate = dateInput.value || null;
+
+    const response = await apiFetch('/tasks', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             title: title,
             description: '',
-            isCompleted: false,
-            dueDate: null
+            dueDate: dueDate
         })
     });
 
@@ -50,12 +99,13 @@ async function createTask(title) {
     }
 
     await loadTasks();
+
+    dateClear.click();
 }
 
 async function toggleComplete(task) {
-    const response = await fetch(`${API_URL}/${task.id}`, {
+    const response = await apiFetch(`/tasks/${task.id}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             title: task.title,
             description: task.description,
@@ -73,7 +123,7 @@ async function toggleComplete(task) {
 }
 
 async function deleteTask(id) {
-    const response = await fetch(`${API_URL}/${id}`, {
+    const response = await apiFetch(`/tasks/${id}`, {
         method: 'DELETE'
     });
 
@@ -83,6 +133,11 @@ async function deleteTask(id) {
     }
 
     await loadTasks();
+}
+
+function handleLogout() {
+    removeToken();
+    window.location.href = 'login.html';
 }
 
 const form = document.getElementById('task-form');
@@ -98,4 +153,45 @@ form.addEventListener('submit', async (event) => {
     input.value = '';
 });
 
+const logoutButton = document.getElementById('logout-button');
+if (logoutButton) {
+    logoutButton.addEventListener('click', handleLogout);
+}
+
+
+const dateButton = document.getElementById('date-button');
+const dateInput = document.getElementById('task-date');
+const dateDisplay = document.getElementById('date-display');
+const dateClear = document.getElementById('date-clear');
+
+Calendar.init({
+    display: dateButton,
+    input: dateInput,
+    clear: dateClear,
+    onSelect: (date) => {
+        updateDateDisplay(date);
+    }
+});
+
+function updateDateDisplay(date) {
+    if (!date) {
+        dateDisplay.textContent = 'Дата';
+        dateButton.classList.remove('has-date');
+        dateClear.classList.remove('visible');
+        return;
+    }
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    const formatted = `${day}.${month}.${year}`;
+    dateDisplay.textContent = formatted;
+
+    const iso = `${year}-${month}-${day}`;
+    dateInput.value = iso;
+
+    dateButton.classList.add('has-date');
+    dateClear.classList.add('visible');
+}
 loadTasks();

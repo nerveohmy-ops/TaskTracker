@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TaskTracker</title>
+    <title>Задачи — TaskTracker</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -11,17 +11,31 @@
 </head>
 <body>
     <div class="container">
-        <h1>Задачи</h1>
+        <div class="header">
+            <h1>Задачи</h1>
+            <button id="logout-button" class="logout">Выйти</button>
+        </div>
         <p class="subtitle">Task Tracker</p>
 
         <form id="task-form">
             <input type="text" id="task-title" placeholder="Что нужно сделать?" required>
+
+            <div class="date-picker">
+                <input type="date" id="task-date" class="date-input-hidden">
+                <button type="button" id="date-button" class="date-button">
+                    <span id="date-display">Дата</span>
+                </button>
+                <button type="button" id="date-clear" class="date-clear" title="Убрать дату">×</button>
+            </div>
+
             <button type="submit">Добавить</button>
         </form>
 
         <ul id="task-list"></ul>
     </div>
 
+    <script src="js/api.js"></script>
+    <script src="js/calendar.js"></script>
     <script src="js/app.js"></script>
 </body>
 </html>
