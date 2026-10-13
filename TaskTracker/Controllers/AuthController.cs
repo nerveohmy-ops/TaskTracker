@@ -40,6 +40,26 @@ namespace TaskTracker.Controllers
 
             return Ok(new { message = "Регистрация успешна", userId = user.Id });
         }
+
+        [HttpPost("login")]
+        public async Task<IActionResult> Login([FromBody] LoginDto dto)
+        {
+            var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+
+            if (user == null)
+            {
+                return Unauthorized("Неверный email или пароль");
+            }
+
+            var passwordValid = BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash);
+
+            if (!passwordValid)
+            {
+                return Unauthorized("Неверный email или пароль");
+            }
+
+            return Ok(new { message = "Вход выполнен", userId = user.Id, email = user.Email });
+        }
     }
 
 }
