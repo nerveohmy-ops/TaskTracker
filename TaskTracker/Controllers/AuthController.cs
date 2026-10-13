@@ -1,8 +1,8 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TaskTracker.Data;
 using TaskTracker.Dtos;
-using Microsoft.EntityFrameworkCore;
+using TaskTracker.Services;
 
 namespace TaskTracker.Controllers
 {
@@ -11,10 +11,12 @@ namespace TaskTracker.Controllers
     public class AuthController : ControllerBase
     {
         private readonly AppDbContext _db;
+        private readonly TokenService _tokenService;
 
-        public AuthController(AppDbContext db)
+        public AuthController(AppDbContext db, TokenService tokenService)
         {
             _db = db;
+            _tokenService = tokenService;
         }
 
         [HttpPost("register")]
@@ -58,8 +60,9 @@ namespace TaskTracker.Controllers
                 return Unauthorized("Неверный email или пароль");
             }
 
-            return Ok(new { message = "Вход выполнен", userId = user.Id, email = user.Email });
+            var token = _tokenService.GenerateToken(user);
+
+            return Ok(new { message = "Вход выполнен", token = token });
         }
     }
-
 }

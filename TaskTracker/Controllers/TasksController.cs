@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskTracker.Data;
 using TaskTracker.Dtos;
@@ -7,6 +8,7 @@ namespace TaskTracker.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class TasksController : ControllerBase
     {
         private readonly AppDbContext _db;
@@ -19,14 +21,20 @@ namespace TaskTracker.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll()
         {
-            var tasks = await _db.Tasks.ToListAsync();
+            var userId = GetCurrentUserId();
+            var tasks = await _db.Tasks
+                .Where(t => t.UserId == userId)
+                .ToListAsync();
             return Ok(tasks);
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(int id)
         {
-            var task = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == id);
+            var userId = GetCurrentUserId();
+            var task = await _db.Tasks
+                .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
+
             if (task == null)
             {
                 return NotFound();
@@ -42,13 +50,16 @@ namespace TaskTracker.Controllers
                 return BadRequest("Дедлайн не может быть в прошлом");
             }
 
+            var userId = GetCurrentUserId();
+
             var newTask = new TaskItem
             {
                 Title = dto.Title,
                 Description = dto.Description,
                 IsCompleted = false,
                 CreatedAt = DateTime.UtcNow,
-                DueDate = dto.DueDate
+                DueDate = dto.DueDate,
+                UserId = userId
             };
 
             _db.Tasks.Add(newTask);
@@ -65,7 +76,10 @@ namespace TaskTracker.Controllers
                 return BadRequest("Дедлайн не может быть в прошлом");
             }
 
-            var task = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == id);
+            var userId = GetCurrentUserId();
+            var task = await _db.Tasks
+                .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
+
             if (task == null)
             {
                 return NotFound();
@@ -84,7 +98,10 @@ namespace TaskTracker.Controllers
         [HttpDelete("{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var task = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == id);
+            var userId = GetCurrentUserId();
+            var task = await _db.Tasks
+                .FirstOrDefaultAsync(t => t.Id == id && t.UserId == userId);
+
             if (task == null)
             {
                 return NotFound();
@@ -94,6 +111,12 @@ namespace TaskTracker.Controllers
             await _db.SaveChangesAsync();
 
             return NoContent();
+        }
+
+        private int GetCurrentUserId()
+        {
+            var claim = User.FindFirst("sub");
+            return int.Parse(claim!.Value);
         }
     }
 }
