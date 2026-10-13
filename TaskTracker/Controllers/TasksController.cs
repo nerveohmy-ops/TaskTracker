@@ -35,6 +35,11 @@ namespace TaskTracker.Controllers
         [HttpPost]
         public IActionResult Create([FromBody] CreateTaskDto dto)
         {
+            if (dto.DueDate.HasValue && dto.DueDate.Value < DateTime.UtcNow)
+            {
+                return BadRequest("Дедлайн не может быть в прошлом");
+            }
+
             var newTask = new TaskItem
             {
                 Title = dto.Title,
@@ -53,6 +58,11 @@ namespace TaskTracker.Controllers
         [HttpPut("{id}")]
         public IActionResult Update(int id, [FromBody] UpdateTaskDto dto)
         {
+            if (dto.DueDate.HasValue && dto.DueDate.Value < DateTime.UtcNow)
+            {
+                return BadRequest("Дедлайн не может быть в прошлом");
+            }
+
             var task = _db.Tasks.FirstOrDefault(t => t.Id == id);
             if (task == null)
             {
