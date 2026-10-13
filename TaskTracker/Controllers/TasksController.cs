@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using TaskTracker.Data;
 using TaskTracker.Dtos;
 
@@ -16,15 +17,16 @@ namespace TaskTracker.Controllers
         }
 
         [HttpGet]
-        public IActionResult GetAll()
+        public async Task<IActionResult> GetAll()
         {
-            return Ok(_db.Tasks.ToList());
+            var tasks = await _db.Tasks.ToListAsync();
+            return Ok(tasks);
         }
 
         [HttpGet("{id}")]
-        public IActionResult GetById(int id)
+        public async Task<IActionResult> GetById(int id)
         {
-            var task = _db.Tasks.FirstOrDefault(t => t.Id == id);
+            var task = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == id);
             if (task == null)
             {
                 return NotFound();
@@ -33,7 +35,7 @@ namespace TaskTracker.Controllers
         }
 
         [HttpPost]
-        public IActionResult Create([FromBody] CreateTaskDto dto)
+        public async Task<IActionResult> Create([FromBody] CreateTaskDto dto)
         {
             if (dto.DueDate.HasValue && dto.DueDate.Value < DateTime.UtcNow)
             {
@@ -50,20 +52,20 @@ namespace TaskTracker.Controllers
             };
 
             _db.Tasks.Add(newTask);
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
 
             return CreatedAtAction(nameof(GetById), new { id = newTask.Id }, newTask);
         }
 
         [HttpPut("{id}")]
-        public IActionResult Update(int id, [FromBody] UpdateTaskDto dto)
+        public async Task<IActionResult> Update(int id, [FromBody] UpdateTaskDto dto)
         {
             if (dto.DueDate.HasValue && dto.DueDate.Value < DateTime.UtcNow)
             {
                 return BadRequest("Дедлайн не может быть в прошлом");
             }
 
-            var task = _db.Tasks.FirstOrDefault(t => t.Id == id);
+            var task = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == id);
             if (task == null)
             {
                 return NotFound();
@@ -74,22 +76,22 @@ namespace TaskTracker.Controllers
             task.IsCompleted = dto.IsCompleted;
             task.DueDate = dto.DueDate;
 
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
 
             return NoContent();
         }
 
         [HttpDelete("{id}")]
-        public IActionResult Delete(int id)
+        public async Task<IActionResult> Delete(int id)
         {
-            var task = _db.Tasks.FirstOrDefault(t => t.Id == id);
+            var task = await _db.Tasks.FirstOrDefaultAsync(t => t.Id == id);
             if (task == null)
             {
                 return NotFound();
             }
 
             _db.Tasks.Remove(task);
-            _db.SaveChanges();
+            await _db.SaveChangesAsync();
 
             return NoContent();
         }
