@@ -1,13 +1,29 @@
 requireAuth();
 
+let currentFilter = localStorage.getItem('tasktracker_filter') || 'all';
+let allTasks = [];
+
 async function loadTasks() {
     const response = await apiFetch('/tasks');
-    const tasks = await response.json();
+    allTasks = await response.json();
 
+    renderTasks();
+    updateCounter();
+}
+
+function renderTasks() {
     const list = document.getElementById('task-list');
     list.innerHTML = '';
 
-    tasks.forEach(task => {
+    let tasksToShow = allTasks;
+
+    if (currentFilter === 'active') {
+        tasksToShow = allTasks.filter(t => !t.isCompleted);
+    } else if (currentFilter === 'completed') {
+        tasksToShow = allTasks.filter(t => t.isCompleted);
+    }
+
+    tasksToShow.forEach(task => {
         const li = document.createElement('li');
 
         const titleSpan = document.createElement('span');
@@ -44,6 +60,20 @@ async function loadTasks() {
         li.appendChild(deleteButton);
         list.appendChild(li);
     });
+}
+
+function updateCounter() {
+    const counter = document.getElementById('task-counter');
+    const activeCount = allTasks.filter(t => !t.isCompleted).length;
+    const totalCount = allTasks.length;
+
+    if (totalCount === 0) {
+        counter.textContent = 'Пока нет задач';
+    } else if (activeCount === 0) {
+        counter.textContent = 'Все задачи выполнены';
+    } else {
+        counter.textContent = `${activeCount} из ${totalCount} активных`;
+    }
 }
 
 function formatDeadline(dueDate, isCompleted) {
@@ -194,4 +224,23 @@ function updateDateDisplay(date) {
     dateButton.classList.add('has-date');
     dateClear.classList.add('visible');
 }
+
+function applyFilter(filter) {
+    currentFilter = filter;
+    localStorage.setItem('tasktracker_filter', filter);
+
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.filter === filter);
+    });
+
+    renderTasks();
+}
+
+document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => applyFilter(btn.dataset.filter));
+});
+
+applyFilter(currentFilter);
+
+
 loadTasks();
